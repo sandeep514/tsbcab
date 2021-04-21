@@ -60,7 +60,7 @@ export default function UploadHealthCert({navigation}){
     return (
 		<ScrollView vertical={true}>
 			<View style={{ flex: 1, width: '100%',height: (deviceHeight) }}>
-				<View style={{width : '100%',justifyContent: 'center'}}>
+				<View style={{flex: 2,width : '100%',justifyContent: 'center',padding: 20}}>
 					<TouchableHighlight  onPress={() => { handleChoosePhoto('healthCert') }} style={{borderRadius : 13 , borderWidth: 2 , borderColor: 'lightgrey', backgroundColor: '#e8e8e8',height: 200 ,marginTop: 20,minHeight: 200, width: '100%',justifyContent: 'center', alignItems: 'center'}} >
 						{(healthCert != null)?
 							<View>

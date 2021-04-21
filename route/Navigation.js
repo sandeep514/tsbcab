@@ -20,7 +20,7 @@ const Stack = createStackNavigator();
 export default function Navigation() {
 	return (
 		<NavigationContainer>
-            <Stack.Navigator initialRouteName="Register" allowFontScaling={false}
+            <Stack.Navigator initialRouteName="Startup" allowFontScaling={false}
                 screenOptions={{
                     headerStyle: {
                         backgroundColor: '#fff',

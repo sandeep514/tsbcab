@@ -65,8 +65,8 @@ export default function UploadFourSidePhoto({navigation}){
     return (
 		<ScrollView vertical={true}>
 			<View style={{ flex: 1, width: '100%',height: (deviceHeight) }}>
-				<View style={{width : '100%',justifyContent: 'center'}}>
-					<TouchableHighlight  onPress={() => { handleChoosePhoto('RC') }} style={{borderRadius : 13 , borderWidth: 2 , borderColor: 'lightgrey', backgroundColor: '#e8e8e8',height: 200 ,marginTop: 20,minHeight: 200, width: '90%',justifyContent: 'center', alignItems: 'center'}} >
+				<View style={{flex: 2,width : '100%',justifyContent: 'center',padding: 20}}>
+					<TouchableHighlight  onPress={() => { handleChoosePhoto('RC') }} style={{borderRadius : 13 , borderWidth: 2 , borderColor: 'lightgrey', backgroundColor: '#e8e8e8',height: 200 ,marginTop: 20,minHeight: 200, width: '100%',justifyContent: 'center', alignItems: 'center'}} >
 						{(RC != null)?
 							<View>
 								<Image source={{ uri: RC.uri }} style={{ width: 150, height: 150,borderRadius: 20 }} />
