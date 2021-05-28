@@ -1,4 +1,4 @@
-import React, { Component, useContext, useState } from 'react'
+import React, { Component, useContext, useState ,useEffect } from 'react'
 import {
   AppRegistry,
   StyleSheet,
@@ -11,112 +11,201 @@ import {
   Button,
   TouchableHighlight,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native'
 import { launchImageLibrary } from 'react-native-image-picker';
 import ImgToBase64 from 'react-native-image-base64';
 import AsyncStorage from '@react-native-community/async-storage';
+import { uploadAttachments } from '../api/client';
+import { getCabs } from '../api/client';
 
 
 let deviceWidth = Dimensions.get('window').width;
 let deviceHeight = Dimensions.get('window').height;
+let postedImages = {};
 
 export default function UploadFourSidePhoto({navigation}){
-	saveProfilePic = ( type , baseProfilePic)=>{
-		// console.log(type , baseProfilePic)
-		AsyncStorage.setItem(type , baseProfilePic);
-	}
-	const [vehicleFront, setvehicleFront] = React.useState(null);
-	const [vehicleBack, setvehicleBack] = React.useState(null);
-	const [vehicleLeft, setvehicleLeft] = React.useState(null);
-	const [vehicleRight, setvehicleRight] = React.useState(null);
+
+	const [frontside, setfrontside] = React.useState(null);
+	const [leftside, setleftside] = React.useState(null);
+	const [rightside, setrightside] = React.useState(null);
+	const [backside, setbackside] = React.useState(null);	
+	const [listCabs, setlistCabs] = React.useState(null);	
 	
-
-
+	const [loader, setLoader] = React.useState(false);
+	useEffect(() => {
+		getCab();
+	} , []);
+	
 	const handleChoosePhoto = (type) => {
 		launchImageLibrary({ noData: true }, (response) => {
+			console.log(response)
+			if( response.fileSize < 2000000 ){
+				ImgToBase64.getBase64String(response.uri).then((base64String) => {
+					if( response.type == "image/jpeg" ){
+						image64 = 'data:image/jpeg;base64,'+base64String;
+					}else if(response.type == "image/png"){
+						image64 = 'data:image/png;base64,'+base64String;
+					}else{
+						alert('Document should be png or jpeg')
+					}
+					
+					if(type == 'frontside'){
+						setfrontside(response);
+					}
+					if(type == 'rightside'){
+						setrightside(response);
+					}
+					if(type == 'backside'){
+						setbackside(response);
+					}
+					if(type == 'leftside'){
+						setleftside(response);
+					}
+					postedImages[type] = image64;
 
-		if (response.didCancel != true) {
-			if(type == 'vehicleFront'){
-				setvehicleFront(response)
+				}).catch((err) =>{  } );
+			}else{
+				alert('File size must be less than 2MB.');
 			}
-			if(type == 'vehicleBack'){
-				setvehicleBack(response)
-			}
-			if(type == 'vehicleLeft'){
-				setvehicleLeft(response)
-			}
-			if(type == 'vehicleRight'){
-				setvehicleRight(response)
-			}
-			saveProfilePic( type , response.uri)
-			// ImgToBase64.getBase64String(response.uri).then((base64String) => saveProfilePic( type , base64String)).catch((err) =>{  } );
-		}
 		});
 	};
+
 	const handleUploadPhoto = () => {
-		
+		setLoader(true)
+		if( Object.keys(postedImages).length == '4' ){
+			AsyncStorage.getItem('user_id').then( (res) => {
+				uploadAttachments({ 'user_id' : 41 , 'data' :postedImages }).then((res) => {
+					setLoader(false)
+					navigation.navigate('ThanksForUpload');
+				} , (err) => {
+					setLoader(false);
+				})
+			})
+		}else{	
+			alert('Please add all required documents');
+			setLoader(false);
+		}
 	};
-  
-    return (
-		<ScrollView vertical={true}>
-			<View style={{ flex: 1,justifyContent: 'center', width: '100%',height: (deviceHeight) }}>
-				<View style={{flex: 2,width : '100%',justifyContent: 'center',padding: 20}}>
-					<TouchableHighlight  onPress={() => { handleChoosePhoto('vehicleFront') }} style={{borderRadius : 13 , borderWidth: 2 , borderColor: 'lightgrey', backgroundColor: '#e8e8e8',height: 200 ,marginTop: 20,minHeight: 200, width: '100%',justifyContent: 'center', alignItems: 'center'}} >
-						{(vehicleFront != null)?
-							<View>
-								<Image source={{ uri: vehicleFront.uri }} style={{ width: 150, height: 150,borderRadius: 20 }} />
-							</View>
+
+	const getCab = () => {
+		getCabs().then((res) => {
+			setlistCabs(res.data.data);
+		} , (err) => {
+			console.log(err)
+		})
+	}
+
+	return (
+		<View style={{flex: 1}}>			
+			<View style={{flex: 1}}>
+				<ScrollView vertical={true} >
+					{(loader) ?
+						<ActivityIndicator size="large" color="red" style={{ position: 'absolute' ,height: deviceHeight , width: '100%'}}></ActivityIndicator>
 						:
-							<View>
-								<Image source={require('../images/cloud-backup-up-arrow.png')} style={{height: 150 , width: 150}} /> 
+						<View></View>
+					}
+					<View style={{flex: 1}}>
+						<Text style={{ textAlign: 'center',padding: 10,fontSize: 20,paddingTop: 30 }}>Select Vehicle Type</Text>
+						<View style={{ flexDirection: 'row' ,justifyContent: 'space-between' , borderBottomColor: 'lightgrey',borderBottomWidth: 1,paddingBottom: 20}}>
+							{(listCabs != null && listCabs != undefined)?
+								Object.values(listCabs).map((res) => {
+									return(
+										<View style={{width : '25%',padding: 5}}>
+											<TouchableHighlight style={{borderRadius : 13 , borderWidth: 2 , borderColor: 'lightgrey', height: 100 ,marginTop: 10,minHeight: 100, width: '100%',justifyContent: 'center', alignItems: 'center'}} >
+												<View>
+													<Image source={require('../images/cloud-backup-up-arrow.png')} style={{height: 50 , width: 50}} /> 
+												</View>
+											</TouchableHighlight>
+											<Text style={{textAlign: 'center' , color: '#000',fontSize: 16}}>{(res.name).toUpperCase()}</Text>
+										</View>
+							)
+								})
+							:
+								<View></View>	
+							}
+
+						</View>
+					</View>
+
+					<View style={{}}>
+						<Text style={{ textAlign: 'center',paddingTop: 30,fontSize: 20 }}>Upload 4 side Image</Text>
+						<View  style={(loader) ? styles.loaderStyle : styles.none} >
+							<View style={{flex: 1,justifyContent: 'center',flexDirection: 'row',flexWrap: 'wrap', width: '100%'}}>
+								<View style={{width : '45%',justifyContent: 'center',padding: 20}}>
+									<TouchableHighlight  onPress={() => { handleChoosePhoto('frontside') }} style={{borderRadius : 13 , borderWidth: 2 , borderColor: 'lightgrey', backgroundColor: '#e8e8e8',height: 150 ,marginTop: 10,minHeight: 150, width: '100%',justifyContent: 'center', alignItems: 'center'}} >
+										{(frontside != null) ?
+											<View>
+												<Image source={{ uri: frontside.uri }} style={{ width: 120, height: 120,borderRadius: 20 }} />
+											</View>
+										:
+											<View>
+												<Image source={require('../images/cloud-backup-up-arrow.png')} style={{height: 100 , width: 100}} /> 
+											</View>
+										}	
+									</TouchableHighlight>
+									<Text style={{textAlign: 'center' , color: '#000',fontSize: 16}}>Front Side</Text>
+								</View>
+
+								<View style={{width : '45%',justifyContent: 'center',padding: 20}}>
+									<TouchableHighlight  onPress={() => { handleChoosePhoto('leftside') }} style={{borderRadius : 13 , borderWidth: 2 , borderColor: 'lightgrey', backgroundColor: '#e8e8e8',height: 150 ,marginTop: 10,minHeight: 150, width: '100%',justifyContent: 'center', alignItems: 'center'}} >
+										{(leftside != null)?
+											<View>
+												<Image source={{ uri: leftside.uri }} style={{ width: 120, height: 120,borderRadius: 20 }} />
+											</View>
+										:
+										<View>
+												<Image source={require('../images/cloud-backup-up-arrow.png')} style={{height: 100 , width: 100}} /> 
+											</View>
+										}	
+									</TouchableHighlight>
+									<Text style={{textAlign: 'center' , color: '#000',fontSize: 16}}>Left Side</Text>
+								</View>
+
+								<View style={{width : '45%',justifyContent: 'center',padding: 20}}>
+									<TouchableHighlight  onPress={() => { handleChoosePhoto('backside') }} style={{borderRadius : 13 , borderWidth: 2 , borderColor: 'lightgrey', backgroundColor: '#e8e8e8',height: 150 ,marginTop: 10,minHeight: 150, width: '100%',justifyContent: 'center', alignItems: 'center'}} >
+										{(backside != null)?
+											<View>
+												<Image source={{ uri: backside.uri }} style={{ width: 120, height: 120,borderRadius: 20 }} />
+											</View>
+										:
+										<View>
+												<Image source={require('../images/cloud-backup-up-arrow.png')} style={{height: 100 , width: 100}} /> 
+											</View>
+										}	
+									</TouchableHighlight>
+									<Text style={{textAlign: 'center' , color: '#000',fontSize: 16}}>Back Side</Text>
+								</View>
+
+								<View style={{width : '45%',justifyContent: 'center',padding: 20}}>
+									<TouchableHighlight  onPress={() => { handleChoosePhoto('rightside') }} style={{borderRadius : 13 , borderWidth: 2 , borderColor: 'lightgrey', backgroundColor: '#e8e8e8',height: 150 ,marginTop: 10,minHeight: 150, width: '100%',justifyContent: 'center', alignItems: 'center'}} >
+										{(rightside != null)?
+											<View>
+												<Image source={{ uri: rightside.uri }} style={{ width: 120, height: 120,borderRadius: 20 }} />
+											</View>
+										:
+											<View>
+												<Image source={require('../images/cloud-backup-up-arrow.png')} style={{height: 100 , width: 100}} /> 
+											</View>
+										}	
+									</TouchableHighlight>
+									<Text style={{textAlign: 'center' , color: '#000',fontSize: 16}}>Right Side</Text>
+
+								</View>
+								
 							</View>
-						}	
-					</TouchableHighlight>
-				</View>
-				<View  style={{width : '100%'}} >
-					<TouchableHighlight  onPress={() => { handleChoosePhoto('vehicleBack') }} style={{borderRadius : 13 , borderWidth: 2 , borderColor: 'lightgrey', backgroundColor: '#e8e8e8',height: 200 ,marginTop: 20,minHeight: 200, width: '100%',justifyContent: 'center', alignItems: 'center'}} >
-					{(vehicleBack != null)?
-						<View>
-							<Image source={{ uri: vehicleBack.uri }} style={{ width: 150, height: 150,borderRadius: 20 }} />
 						</View>
-					:
-						<View>
-							<Image source={require('../images/cloud-backup-up-arrow.png')} style={{height: 150 , width: 150}} /> 
-						</View>
-					}
-					</TouchableHighlight>
-				</View>
-				<View  style={{width : '100%'}}>
-					<TouchableHighlight  onPress={() => { handleChoosePhoto('vehicleLeft') }} style={{borderRadius : 13 , borderWidth: 2 , borderColor: 'lightgrey', backgroundColor: '#e8e8e8',height: 200 ,marginTop: 20,minHeight: 200, width: '100%',justifyContent: 'center', alignItems: 'center'}} >
-					{(vehicleLeft != null)?
-						<View>
-							<Image source={{ uri: vehicleLeft.uri }} style={{ width: 150, height: 150,borderRadius: 20 }} />
-						</View>
-					:
-						<View>
-							<Image source={require('../images/cloud-backup-up-arrow.png')} style={{height: 150 , width: 150}} /> 
-						</View>
-					}
-					</TouchableHighlight>
-				</View>
-				<View  style={{width : '100%'}}>
-					<TouchableHighlight  onPress={() => { handleChoosePhoto('vehicleRight') }} style={{borderRadius : 13 , borderWidth: 2 , borderColor: 'lightgrey', backgroundColor: '#e8e8e8',height: 200 ,marginTop: 20,minHeight: 200, width: '100%',justifyContent: 'center', alignItems: 'center'}} >
-					{(vehicleRight != null)?
-						<View>
-							<Image source={{ uri: vehicleRight.uri }} style={{ width: 150, height: 150,borderRadius: 20 }} />
-						</View>
-					:
-						<View>
-							<Image source={require('../images/cloud-backup-up-arrow.png')} style={{height: 150 , width: 150}} /> 
-						</View>
-					}
-					</TouchableHighlight>
-				</View>
-				<View style={{bottom: 10 , right:10, position: 'absolute'}}>
-					<TouchableHighlight onPress={handleUploadPhoto} style={{position: 'absolute',bottom: 0,right:0,height: 70 , width: 70, backgroundColor: 'red',justifyContent: 'center',borderRadius: 100 }} ><View><Text style={{textAlign: 'center',color: 'white' , fontSize: 45,marginTop: 0}}> > </Text></View></TouchableHighlight>
-				</View>
+					</View>
+					
+				</ScrollView>
 			</View>
-		</ScrollView>
+
+			<View style={{flex: 0.1, backgroundColor: 'red'}}>
+				<TouchableHighlight onPress={() => { handleUploadPhoto() }} style={{justifyContent: 'center',padding: 15}} >
+					<Text style={{textAlign: 'center',color: 'white' , fontSize: 35,marginTop: 0}}> Continue </Text>
+				</TouchableHighlight>
+			</View>
+		</View>
     )
 }
 
@@ -127,6 +216,11 @@ const styles = StyleSheet.create({
   },
   welcome: {
     color: 'white'
+  },none: {
+
+  },
+  loaderStyle: {
+	backgroundColor: '#ededed',opacity:0.2,height: deviceHeight,justifyContent: 'center'
   }
 })
 
